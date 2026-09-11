@@ -6,12 +6,19 @@ import {
   DEFAULT_SETTINGS,
   getSettings,
   saveSettings,
+  setAdminPassword,
+  getAdminPassword,
+  checkAdminPassword,
   type StoreSettings,
 } from "@/lib/store";
 
 export default function AdminSettingsPage() {
   const [form, setForm] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [passMsg, setPassMsg] = useState("");
 
   useEffect(() => {
     setForm(getSettings());
@@ -106,6 +113,27 @@ export default function AdminSettingsPage() {
         </label>
         
         <hr className="border-[var(--line)]" />
+        
+        <hr className="border-[var(--line)]" />
+        <p className="text-xs uppercase tracking-wide text-[var(--muted)]">About page</p>
+        <label className="block text-sm">
+          About title
+          <input
+            className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5"
+            value={form.aboutTitle || ""}
+            onChange={(e) => setForm({ ...form, aboutTitle: e.target.value })}
+          />
+        </label>
+        <label className="block text-sm">
+          About text
+          <textarea
+            className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5"
+            rows={6}
+            value={form.aboutBody || ""}
+            onChange={(e) => setForm({ ...form, aboutBody: e.target.value })}
+          />
+        </label>
+
         <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Brand colours</p>
         <p className="text-xs text-[var(--muted)]">Default is purple. Change anytime — store updates live.</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -129,10 +157,101 @@ export default function AdminSettingsPage() {
           </label>
         </div>
 
+        
+        <label className="block text-sm">
+          Shipping fee (NGN)
+          <input
+            type="number"
+            min={0}
+            className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5"
+            value={form.shippingFee ?? 2500}
+            onChange={(e) => setForm({ ...form, shippingFee: Number(e.target.value) || 0 })}
+          />
+        </label>
+        <label className="block text-sm">
+          Admin recovery Gmail
+          <input
+            type="email"
+            className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5"
+            placeholder="you@gmail.com"
+            value={form.adminEmail || ""}
+            onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
+          />
+        </label>
+        <p className="text-xs text-[var(--muted)]">
+          Saved for your records. Full “reset via Gmail link” needs free Supabase Auth (optional next step).
+        </p>
+
         <label className="block text-sm">
           Shipping note
           <textarea className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5" rows={3} value={form.shippingNote} onChange={(e) => setForm({ ...form, shippingNote: e.target.value })} />
         </label>
+        
+        <hr className="border-[var(--line)]" />
+        <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Admin password</p>
+        <p className="text-xs text-[var(--muted)]">Client can change this anytime. Min 4 characters.</p>
+        <label className="block text-sm">
+          Current password
+          <input
+            type="password"
+            className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5"
+            value={currentPass}
+            onChange={(e) => setCurrentPass(e.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        <label className="block text-sm">
+          New password
+          <input
+            type="password"
+            className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5"
+            value={newPass}
+            onChange={(e) => setNewPass(e.target.value)}
+            autoComplete="new-password"
+          />
+        </label>
+        <label className="block text-sm">
+          Confirm password
+          <input
+            type="password"
+            className="mt-1 w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 py-2.5"
+            value={confirmPass}
+            onChange={(e) => setConfirmPass(e.target.value)}
+            autoComplete="new-password"
+          />
+        </label>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            setPassMsg("");
+            if (!checkAdminPassword(currentPass)) {
+              setPassMsg("Current password is wrong");
+              return;
+            }
+            if (newPass.length < 4) {
+              setPassMsg("At least 4 characters");
+              return;
+            }
+            if (newPass !== confirmPass) {
+              setPassMsg("Passwords do not match");
+              return;
+            }
+            try {
+              setAdminPassword(newPass);
+              setCurrentPass("");
+              setNewPass("");
+              setConfirmPass("");
+              setPassMsg("Password updated");
+            } catch (e) {
+              setPassMsg(e instanceof Error ? e.message : "Failed");
+            }
+          }}
+        >
+          Update password
+        </button>
+        {passMsg ? <p className="text-sm text-[var(--muted)]">{passMsg}</p> : null}
+
         <button type="submit" className="btn btn-primary w-full sm:w-auto">
           {saved ? "Saved ✓" : "Save settings"}
         </button>
