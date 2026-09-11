@@ -48,6 +48,9 @@ export function ProductCard({ product }: { product: Product }) {
         {product.minOrderQty && product.minOrderQty > 1 ? (
           <p className="mt-1 text-xs text-[var(--muted)]">Min order: {product.minOrderQty}</p>
         ) : null}
+        {typeof product.stock === "number" ? (
+          <p className="mt-1 text-xs text-[var(--muted)]">{product.stock} remaining</p>
+        ) : null}
         <button
           type="button"
           className="btn btn-primary mt-4 w-full !py-2.5 text-sm"

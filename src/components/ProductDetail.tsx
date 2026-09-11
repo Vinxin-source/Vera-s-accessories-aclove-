@@ -10,9 +10,11 @@ export function ProductDetail({ slug }: { slug: string }) {
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
 
   useEffect(() => {
     setProduct(getProductBySlug(slug) ?? null);
+    setActiveImg(0);
   }, [slug]);
 
   if (product === undefined) {
@@ -31,9 +33,34 @@ export function ProductDetail({ slug }: { slug: string }) {
 
   return (
     <div className="grid gap-10 md:grid-cols-2 animate-fade-up">
-      <div className="aspect-[4/5] overflow-hidden rounded-[20px] bg-[var(--gold-soft)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={product.images[0] || ""} alt={product.name} className="h-full w-full object-cover" />
+      <div>
+        <div className="aspect-[4/5] overflow-hidden rounded-[20px] bg-[var(--gold-soft)]">
+          {product.images[activeImg] || product.images[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.images[activeImg] || product.images[0]}
+              alt={product.name}
+              className="h-full w-full object-cover transition-opacity duration-300"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-[var(--muted)] text-sm">No photo</div>
+          )}
+        </div>
+        {product.images.length > 1 ? (
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {product.images.map((src, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveImg(i)}
+                className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${i === activeImg ? "border-[var(--rose)]" : "border-transparent"}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div>
         <p className="text-xs uppercase tracking-wide text-[var(--muted)]">{product.category}</p>

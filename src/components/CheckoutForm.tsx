@@ -14,8 +14,6 @@ import {
   type StoreSettings,
 } from "@/lib/store";
 
-const SHIPPING = 2500;
-
 export function CheckoutForm() {
   const router = useRouter();
   const [cart, setCart] = useState(getCart());
@@ -42,17 +40,24 @@ export function CheckoutForm() {
   }, [cart]);
 
   const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-  const total = subtotal + (lines.length ? SHIPPING : 0);
+  const shippingFee = settings?.shippingFee ?? 2500;
+  const total = subtotal + (lines.length ? shippingFee : 0);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!lines.length) return;
+    for (const l of lines) {
+      if (l.qty > (l.product.stock || 0)) {
+        alert("Not enough stock for " + l.product.name + " (" + (l.product.stock || 0) + " left)");
+        return;
+      }
+    }
     setSaving(true);
     const form = new FormData(e.currentTarget);
     const order: Order = {
       id: `ORD-${Date.now().toString(36).toUpperCase()}`,
       createdAt: new Date().toISOString(),
-      status: "new",
+      status: "awaiting_payment",
       customer: {
         name: String(form.get("name") || ""),
         phone: String(form.get("phone") || ""),
@@ -68,7 +73,7 @@ export function CheckoutForm() {
         qty: l.qty,
       })),
       subtotal,
-      shipping: SHIPPING,
+      shipping: shippingFee,
       total,
     };
     saveOrder(order);
@@ -115,13 +120,16 @@ export function CheckoutForm() {
           </ul>
           <div className="mt-4 space-y-1 border-t border-[var(--line)] pt-4 text-sm">
             <div className="flex justify-between"><span>Subtotal</span><span>{formatNGN(subtotal)}</span></div>
-            <div className="flex justify-between"><span>Shipping</span><span>{formatNGN(SHIPPING)}</span></div>
+            <div className="flex justify-between"><span>Shipping</span><span>{formatNGN(shippingFee)}</span></div>
             <div className="flex justify-between font-medium text-base pt-1"><span>Total</span><span>{formatNGN(total)}</span></div>
           </div>
         </div>
 
         <div className="card border-[var(--rose)]/20 bg-[var(--gold-soft)]/50 p-6">
           <h2 className="font-display text-lg">Pay to this account</h2>
+          <p className="mt-2 text-2xl font-semibold text-[var(--rose-deep)]">
+            Pay exactly {formatNGN(total)}
+          </p>
           {hasBank ? (
             <dl className="mt-3 space-y-2 text-sm">
               <div><dt className="text-[var(--muted)]">Bank</dt><dd className="font-medium">{settings?.bankName}</dd></div>
