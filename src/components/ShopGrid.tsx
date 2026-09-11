@@ -28,12 +28,12 @@ export function ShopGrid() {
   if (!products.length) {
     return (
       <div className="card p-12 text-center animate-fade-up">
-        <p className="font-display text-xl">No products yet</p>
+        <p className="font-display text-xl">No products listed yet</p>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          The catalog is empty. Add items from Admin when you are ready.
+          New items will show here when available. Contact us for sourcing requests.
         </p>
-        <Link href="/admin/products" className="btn btn-primary mt-6 inline-flex">
-          Add products
+        <Link href="/contact" className="btn btn-primary mt-6 inline-flex">
+          Contact us
         </Link>
       </div>
     );
