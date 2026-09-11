@@ -7,7 +7,7 @@ const ORDERS_KEY = "vera_orders";
 const CART_KEY = "vera_cart";
 const ADMIN_KEY = "vera_admin_session";
 
-export type OrderStatus = "new" | "confirmed" | "shipped" | "delivered" | "cancelled";
+export type OrderStatus = "new" | "awaiting_payment" | "paid" | "shipped" | "delivered" | "cancelled";
 
 export interface CartItem {
   productId: string;
@@ -123,11 +123,42 @@ export function saveOrder(order: Order) {
   const orders = getOrders();
   orders.unshift(order);
   localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  // Reserve stock when order is placed
+  const products = getProducts();
+  let changed = false;
+  for (const line of order.items) {
+    const i = products.findIndex((p) => p.id === line.productId);
+    if (i < 0) continue;
+    const next = Math.max(0, (products[i].stock || 0) - line.qty);
+    products[i] = {
+      ...products[i],
+      stock: next,
+      inStock: next > 0,
+    };
+    changed = true;
+  }
+  if (changed) saveProducts(products);
+}
+
+export function restoreStockForOrder(order: Order) {
+  const products = getProducts();
+  for (const line of order.items) {
+    const i = products.findIndex((p) => p.id === line.productId);
+    if (i < 0) continue;
+    const next = (products[i].stock || 0) + line.qty;
+    products[i] = { ...products[i], stock: next, inStock: true };
+  }
+  saveProducts(products);
 }
 
 export function updateOrderStatus(id: string, status: OrderStatus) {
+  const prev = getOrders().find((o) => o.id === id);
   const orders = getOrders().map((o) => (o.id === id ? { ...o, status } : o));
   localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  // If cancelled after stock was reserved, put stock back once
+  if (prev && status === "cancelled" && prev.status !== "cancelled") {
+    restoreStockForOrder(prev);
+  }
 }
 
 /** Simple admin gate — change password in production */
@@ -145,10 +176,6 @@ export function adminLogout() {
   localStorage.removeItem(ADMIN_KEY);
 }
 
-export function isAdminLoggedIn() {
-  if (!canUse()) return false;
-  return localStorage.getItem(ADMIN_KEY) === "1";
-}
 
 export function cartCount() {
   return getCart().reduce((n, i) => n + i.qty, 0);
@@ -164,7 +191,11 @@ export interface StoreSettings {
   accountName: string;
   accountNumber: string;
   shippingNote: string;
+  shippingFee: number;
+  adminEmail: string;
   logoDataUrl?: string;
+  aboutTitle: string;
+  aboutBody: string;
   primaryColor: string;
   accentColor: string;
   backgroundColor: string;
@@ -181,7 +212,11 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   accountName: "",
   accountNumber: "",
   shippingNote: "Delivery options confirmed after order on WhatsApp.",
+  shippingFee: 2500,
+  adminEmail: "",
   logoDataUrl: "",
+  aboutTitle: "About us",
+  aboutBody: "China procurement agent, personal shopper, preorders, product sourcing, RMB exchange, and trusted import services. We source with care so you know what you are buying and when it arrives.",
   primaryColor: "#6D28D9",
   accentColor: "#A78BFA",
   backgroundColor: "#F5F3FF",
@@ -202,4 +237,39 @@ export function saveSettings(settings: StoreSettings) {
   if (!canUse()) return;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   window.dispatchEvent(new Event("vera-settings"));
+}
+
+
+const ADMIN_PASS_KEY = "vera_admin_pass_v1";
+const DEFAULT_ADMIN_PASS = "vera2026";
+
+export function getAdminPassword(): string {
+  if (!canUse()) return DEFAULT_ADMIN_PASS;
+  try {
+    return localStorage.getItem(ADMIN_PASS_KEY) || DEFAULT_ADMIN_PASS;
+  } catch {
+    return DEFAULT_ADMIN_PASS;
+  }
+}
+
+export function setAdminPassword(next: string) {
+  if (!canUse()) return;
+  const v = next.trim();
+  if (v.length < 4) throw new Error("Password at least 4 characters");
+  localStorage.setItem(ADMIN_PASS_KEY, v);
+}
+
+export function checkAdminPassword(input: string): boolean {
+  return input === getAdminPassword();
+}
+
+export function isAdminLoggedIn(): boolean {
+  if (!canUse()) return false;
+  return localStorage.getItem(ADMIN_KEY) === "1";
+}
+
+export function setAdminLoggedIn(ok: boolean) {
+  if (!canUse()) return;
+  if (ok) localStorage.setItem(ADMIN_KEY, "1");
+  else localStorage.removeItem(ADMIN_KEY);
 }
