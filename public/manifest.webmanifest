@@ -1,1 +1,18 @@
-
+{
+  "name": "Vera's Accessories Aclove",
+  "short_name": "Vera Aclove",
+  "description": "Shop accessories, imports, and preorders",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F3FF",
+  "theme_color": "#6D28D9",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
